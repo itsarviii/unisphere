@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from pgvector.django import VectorField
 from societies.models import Society
 
 
@@ -9,6 +10,7 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     event_date = models.DateTimeField()
     location = models.CharField(max_length=255)
+    embedding = VectorField(dimensions=3072, null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
