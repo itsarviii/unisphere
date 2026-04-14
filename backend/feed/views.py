@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery
 from datetime import timedelta
 
 from posts.models import Post, PostLike, Comment
@@ -38,10 +38,14 @@ class FeedView(APIView):
         interest_text = ", ".join(interests) if interests else ""
         user_embedding = generate_embedding(interest_text) if interest_text else None
 
+        likes_sq = PostLike.objects.filter(post=OuterRef("pk")).values("post").annotate(c=Count("pk")).values("c")
+        comments_sq = Comment.objects.filter(post=OuterRef("pk")).values("post").annotate(c=Count("pk")).values("c")
+        attendees_sq = EventAttendee.objects.filter(event=OuterRef("pk")).values("event").annotate(c=Count("pk")).values("c")
+
         posts = (
             Post.objects
             .select_related("society", "author")
-            .annotate(likes_count=Count("likes"), comments_count=Count("comments"))
+            .annotate(likes_count=Subquery(likes_sq), comments_count=Subquery(comments_sq))
             .filter(created_at__gte=cutoff)
             .order_by("-created_at")[:200]
         )
@@ -49,7 +53,7 @@ class FeedView(APIView):
         events = (
             Event.objects
             .select_related("society")
-            .annotate(attendee_count=Count("attendees"))
+            .annotate(attendee_count=Subquery(attendees_sq))
             .filter(event_date__gte=now)
             .order_by("event_date")[:100]
         )
