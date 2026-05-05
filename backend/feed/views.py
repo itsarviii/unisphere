@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db.models import Count, OuterRef, Subquery
-from datetime import timedelta
 
 from posts.models import Post, PostLike, Comment
 from events.models import Event, EventAttendee
@@ -28,7 +27,6 @@ class FeedView(APIView):
     def get(self, request):
         user = request.user
         now = timezone.now()
-        cutoff = now - timedelta(days=30)
 
         interests = [i.strip().lower() for i in (user.interests or "").split(",") if i.strip()]
         followed_ids = set(Membership.objects.filter(user=user).values_list("society_id", flat=True))
@@ -46,7 +44,6 @@ class FeedView(APIView):
             Post.objects
             .select_related("society", "author")
             .annotate(likes_count=Subquery(likes_sq), comments_count=Subquery(comments_sq))
-            .filter(created_at__gte=cutoff)
             .order_by("-created_at")[:200]
         )
 
