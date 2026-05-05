@@ -1,5 +1,7 @@
 import os
+import httpx
 from google import genai
+from google.genai import types
 
 _client = None
 
@@ -7,7 +9,12 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", ""))
+        verify_ssl = os.getenv("GEMINI_VERIFY_SSL", "true").lower() != "false"
+        http_client = httpx.Client(verify=verify_ssl)
+        _client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY", ""),
+            http_options=types.HttpOptions(httpx_client=http_client),
+        )
     return _client
 
 
